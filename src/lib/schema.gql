@@ -5,6 +5,24 @@ type User {
 	email: String
 }
 
+# Pagination types
+type PageInfo {
+	hasNextPage: Boolean!
+	endCursor: String!
+}
+
+type UserEdge {
+	cursor: String!
+	node: User!
+}
+
+type UserConnection {
+	edges: [UserEdge!]!
+	pageInfo: PageInfo!
+}
+
+# Root query
 type Query {
 	users: [User]
+	searchUsers(first: Int!, after: String!): UserConnection!
 }
