@@ -14,8 +14,15 @@
 	// How many users to load at once
 	const pageSize = 10;
 
-	// Pointers to top of each page
-	let pageCursors = [''];
+	type PageStatus = {
+		// Whether the previous page was loaded, null if not
+		cursor: string | null;
+		// Whether this page has been scrolled into view
+		// (starts false and only updated to true if cursor is non-null)
+		pageWasVisible: boolean;
+	};
+	const defaultPageStatus = { cursor: null, pageWasVisible: false } as const satisfies PageStatus;
+	let pageStatuses: PageStatus[] = [{ cursor: '', pageWasVisible: true }];
 
 	// Whether there's still pages to show
 	let hasNextPage = true;
@@ -26,12 +33,11 @@
 	// When this is visible, load a new page
 	let trailerEl: HTMLDivElement;
 
-	// New pages won't load until user scrolls to bottom and updates this var
-	let nextUnseenPage = 0;
-
-	// New pages won't load until the previous page (it's endCursor) is fetched
+	// When a page load, use its last cursor to fetch the next page
 	function onPageLoad({ detail }: CustomEvent<Page<UserType>>, pageIdx: number) {
 		console.log(`Page ${pageIdx} loaded`);
+
+		const nextPageStatus = getPageStatus(pageIdx + 1);
 
 		// If there's no data and this isn't the first page, something went horribly wrong
 		if (isEmptyArray(detail.edges) && pageIdx > 0) {
@@ -42,22 +48,26 @@
 
 		// Grab cursor for the next page
 		if (detail.pageInfo.hasNextPage) {
-			const nextPageIdx = pageIdx + 1;
-			if (nextPageIdx == pageCursors.length) {
-				pageCursors.push(detail.pageInfo.endCursor as string);
-				pageCursors = pageCursors;
-			} else {
-				const adverb = pageCursors.length < nextPageIdx ? 'only' : 'already';
-				console.error(`Page ${nextPageIdx} was loaded but there is ${adverb} pages loaded.`);
-			}
+			nextPageStatus.cursor = detail.pageInfo.endCursor as string;
+			console.log(`Set cursor of page ${pageIdx + 1} to ${nextPageStatus.cursor}`);
 		} else {
 			console.log('No more data.');
 			hasNextPage = false;
 		}
 	}
 
+	// Get item at certain index, appending new items if necessary
+	function getPageStatus(idx: number): PageStatus {
+		while (pageStatuses.length <= idx) {
+			pageStatuses.push({ ...defaultPageStatus });
+			pageStatuses = pageStatuses;
+		}
+
+		return pageStatuses[idx];
+	}
+
 	// Check if we need to load more pages
-	function checkTrailerVisibility(cursors: string[]) {
+	function checkTrailerVisibility() {
 		if (!hasNextPage) {
 			return;
 		}
@@ -65,27 +75,45 @@
 			return;
 		}
 
-		const bottomOfPage = containerEl.scrollTop + document.body.clientHeight;
+		// If the bottom of the list is in view, mark all loaded pages as seen
+		const bottomOfPage = containerEl.offsetTop + containerEl.scrollTop + document.body.clientHeight;
 		const topOfTrailer = trailerEl.offsetTop;
-		if (topOfTrailer < bottomOfPage) {
-			// While hasNextPage is true, the final item in pageCursors is always the next page we need to load
-			nextUnseenPage = cursors.length - 1;
-			console.log(`Loading of page ${nextUnseenPage} enabled.`);
+		const trailerIsVisible = topOfTrailer < bottomOfPage;
+		if (trailerIsVisible) {
+			for (let i = pageStatuses.length - 1; i >= 0; i--) {
+				const status = pageStatuses[i];
+
+				// Ignore pages that aren't loaded / loading
+				if (!status.cursor) {
+					continue;
+				}
+
+				if (!status.pageWasVisible) {
+					status.pageWasVisible = true;
+					pageStatuses = pageStatuses;
+					console.log(`Loading of page ${i} enabled.`);
+				} else {
+					// We can assume all remaining pages were already marked as viewed
+					break;
+				}
+			}
 		}
 	}
 	// Run the check after each page loads (pageCursors is appended to)
-	$: checkTrailerVisibility(pageCursors);
+	$: pageStatuses, checkTrailerVisibility();
 </script>
+
+<svelte:window on:resize={() => checkTrailerVisibility()} />
 
 <div
 	bind:this={containerEl}
-	on:scroll={() => checkTrailerVisibility(pageCursors)}
+	on:scroll={() => checkTrailerVisibility()}
 	class="w-full h-full overflow-scroll"
 >
-	{#each pageCursors as cursor, pageIdx}
-		{#if pageIdx <= nextUnseenPage}
+	{#each pageStatuses as page, pageIdx}
+		{#if page.cursor !== null && page.pageWasVisible}
 			<UserList
-				after={cursor}
+				after={page.cursor}
 				first={pageSize}
 				on:searchresult={(data) => onPageLoad(data, pageIdx)}
 			/>

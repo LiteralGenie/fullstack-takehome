@@ -16,7 +16,7 @@ test('user list is scrollable', async ({ page }) => {
 		return await children.count();
 	};
 	const waitForLoaders = async () => {
-		await new Promise((r) => setTimeout(r, 10)); // Hack to wait for loaders that haven't appeared yet
+		await new Promise((r) => setTimeout(r, 50)); // Hack to wait for loaders that haven't appeared yet
 		await expect(spinner).toHaveCount(0);
 	};
 
