@@ -13,3 +13,9 @@ These cursors should've probably been cached instead of regenerated on every req
 > How might you implement a search feature?
 
 After defining the filters as function arguments in the GraphQL schema, I would probably first filter the results by the start / end ids (before / after cursors) then further filter that set by the search query, with whatever limit on the number of results per page.
+
+# Running
+
+- `npm run dev` to launch the app
+- `npm run test` to run end-to-end tests
+- `npm run tets:unit` to run unit tests
