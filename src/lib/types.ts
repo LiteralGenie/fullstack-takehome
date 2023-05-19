@@ -5,7 +5,7 @@ export type UserType = {
 	avatar: string;
 };
 
-export type Page<T> = {
+export type Page<T = any> = {
 	edges: Array<{
 		cursor: string;
 		node: T;
@@ -13,5 +13,7 @@ export type Page<T> = {
 	pageInfo: {
 		hasNextPage: boolean;
 		endCursor: string | null;
+		hasPreviousPage: boolean;
+		startCursor: string | null;
 	};
 };
