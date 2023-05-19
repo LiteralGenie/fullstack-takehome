@@ -11,7 +11,7 @@ type BackwardArguments = {
 	before: string;
 };
 
-type SearchOptions = Partial<ForwardArguments> & Partial<BackwardArguments>;
+export type SearchOptions = Partial<ForwardArguments> & Partial<BackwardArguments>;
 
 /**
  * Return a subset of users
