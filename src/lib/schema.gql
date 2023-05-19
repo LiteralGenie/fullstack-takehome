@@ -7,8 +7,10 @@ type User {
 
 # Pagination types
 type PageInfo {
+	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
-	endCursor: String!
+	startCursor: String
+	endCursor: String
 }
 
 type UserEdge {

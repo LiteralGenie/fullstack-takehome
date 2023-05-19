@@ -14,7 +14,7 @@ type SearchOptions = Partial<ForwardArguments> & Partial<BackwardArguments>;
 
 /**
  * Return a subset of users
- * User id is used as cursor
+ * User id is used as cursor (not the index!)
  * The user list should be append-only and not allow deletions, otherwise old cursors become invalid
  * This is an implementation of https://relay.dev/graphql/connections.htm#sec-Pagination-algorithm
  * @param users users sorted by id in ascending order
@@ -30,7 +30,7 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	// Convert cursors to indices
 	let indexAfter = -1;
 	if (forwardArgs) {
-		const id = decodeCursor(forwardArgs.after || '');
+		const id = decodeCursor(forwardArgs.after);
 		if (!isNaN(id)) {
 			indexAfter = users.findIndex((user) => user.id === id) ?? indexAfter;
 		}
@@ -38,20 +38,22 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 
 	let indexBefore = users.length;
 	if (backwardArgs) {
-		const id = decodeCursor(backwardArgs.before || '');
+		const id = decodeCursor(backwardArgs.before);
 		if (!isNaN(id)) {
 			indexBefore = users.findIndex((user) => user.id === id) ?? indexBefore;
 		}
 	}
 
-	// Get all users between indices (after, before)
-	let usersSlice = users.slice(indexAfter, indexBefore);
+	// Get all users between indices (after, before), accounting for first and last
+	// Note that the resulting range [start, end) may be invalid (ie start >= end)
+	let [idxStart, idxEnd] = [indexAfter + 1, indexBefore];
 	if (forwardArgs) {
-		usersSlice = usersSlice.slice(0, forwardArgs.first);
+		idxEnd = idxStart + forwardArgs.first;
 	}
 	if (backwardArgs) {
-		usersSlice = usersSlice.slice(-1 * backwardArgs.last);
+		idxStart = idxEnd - backwardArgs.last;
 	}
+	const usersSlice = users.slice(idxStart, idxEnd);
 
 	// Convert users to edges
 	const edges = usersSlice.map((node) => {
@@ -59,23 +61,13 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 		return { node, cursor };
 	});
 
-	// Default pageInfo
+	// Create pageInfo
 	const pageInfo: Page['pageInfo'] = {
-		hasNextPage: false,
-		endCursor: edges[edges.length - 1].cursor || null,
-		hasPreviousPage: false,
-		startCursor: edges[0].cursor || null
+		hasNextPage: idxEnd < users.length,
+		endCursor: edges[edges.length - 1]?.cursor || null,
+		hasPreviousPage: idxStart > 0,
+		startCursor: edges[0]?.cursor || null
 	};
-
-	// Check if more pages
-	if (forwardArgs) {
-		const sliceHasLastUser = indexAfter + forwardArgs.first >= users.length - 1;
-		pageInfo.hasNextPage = !sliceHasLastUser;
-	}
-	if (backwardArgs) {
-		const sliceHasFirstUser = indexBefore - backwardArgs.last <= 0;
-		pageInfo.hasPreviousPage = !sliceHasFirstUser;
-	}
 
 	const result = { edges, pageInfo };
 	return result;
