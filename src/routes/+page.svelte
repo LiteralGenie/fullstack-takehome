@@ -1,7 +1,15 @@
 <script lang="ts">
+	import { Client, setContextClient, cacheExchange, fetchExchange } from '@urql/svelte';
 	import UserList from 'components/UserList.svelte';
 	import type { UserType, Page } from 'lib/types';
 	import { isEmptyArray } from 'lib/utils';
+
+	const client = new Client({
+		url: '/graphql',
+		exchanges: [cacheExchange, fetchExchange]
+	});
+
+	setContextClient(client);
 
 	// How many users to load at once
 	const pageSize = 10;

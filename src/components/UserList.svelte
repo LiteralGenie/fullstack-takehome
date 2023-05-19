@@ -1,20 +1,15 @@
 <script lang="ts">
-	import { cacheExchange, createClient, fetchExchange, gql, queryStore } from '@urql/svelte';
+	import { getContextClient, gql, queryStore } from '@urql/svelte';
 	import Loader from 'components/Loader.svelte';
 	import User from 'components/User.svelte';
 	import type { UserType, Page } from 'lib/types';
 	import { createEventDispatcher, onMount } from 'svelte';
 
-	const client = createClient({
-		url: '/graphql',
-		exchanges: [cacheExchange, fetchExchange]
-	});
-
 	export let after: string;
 	export let first: number;
 
 	const result = queryStore<{ searchUsers: Page<UserType> }>({
-		client,
+		client: getContextClient(),
 		query: gql`
 			query SearchUsers($first: Int!, $after: String!) {
 				searchUsers(first: $first, after: $after) {

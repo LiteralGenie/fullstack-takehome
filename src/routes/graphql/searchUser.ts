@@ -30,6 +30,8 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	// Convert cursors to indices
 	let indexAfter = -1;
 	if (forwardArgs) {
+		// Assume the index is the (cursor - 1) since the ids are "hardcoded numerics"
+		// If they weren't sequential (but still ordered) we could probably do a findIndex / binary search
 		const index = decodeCursor(forwardArgs.after) - 1;
 		if (!isNaN(index) && index >= 0 && index < users.length) {
 			indexAfter = index;
