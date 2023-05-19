@@ -30,19 +30,17 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	// Convert cursors to indices
 	let indexAfter = -1;
 	if (forwardArgs) {
-		const id = decodeCursor(forwardArgs.after);
-		const index = id - 1;
-		if (index >= 0 && index < users.length) {
+		const index = decodeCursor(forwardArgs.after) - 1;
+		if (!isNaN(index) && index >= 0 && index < users.length) {
 			indexAfter = index;
 		}
 	}
 
 	let indexBefore = users.length;
 	if (backwardArgs) {
-		const id = decodeCursor(backwardArgs.before);
-		const index = id - 1;
-		if (index >= 0 && index < users.length) {
-			indexAfter = index;
+		const index = decodeCursor(backwardArgs.before) - 1;
+		if (!isNaN(index) && index >= 0 && index < users.length) {
+			indexBefore = index;
 		}
 	}
 
@@ -54,6 +52,7 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	}
 	if (backwardArgs) {
 		idxStart = idxEnd - backwardArgs.last;
+		idxStart = Math.max(idxStart, 0);
 	}
 	const usersSlice = users.slice(idxStart, idxEnd);
 
