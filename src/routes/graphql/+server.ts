@@ -6,7 +6,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { users } from '$lib/data';
 
 import schema from '$lib/schema.gql';
-import { searchUsers } from './utils';
+import { searchUsers } from './searchUser';
 
 const yogaApp = createYoga<RequestEvent>({
 	schema: createSchema({

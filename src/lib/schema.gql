@@ -26,5 +26,5 @@ type UserConnection {
 # Root query
 type Query {
 	users: [User]
-	searchUsers(first: Int!, after: String!): UserConnection!
+	searchUsers(first: Int, after: String, last: Int, before: String): UserConnection!
 }

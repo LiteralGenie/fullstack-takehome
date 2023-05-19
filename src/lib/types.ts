@@ -5,15 +5,27 @@ export type UserType = {
 	avatar: string;
 };
 
-export type Page<T = any> = {
-	edges: Array<{
-		cursor: string;
-		node: T;
-	}>;
+export type EmptyPage = {
+	edges: [];
 	pageInfo: {
 		hasNextPage: boolean;
-		endCursor: string | null;
+		endCursor: null;
 		hasPreviousPage: boolean;
-		startCursor: string | null;
+		startCursor: null;
 	};
 };
+
+export type Page<T = any> =
+	| {
+			edges: Array<{
+				cursor: string;
+				node: T;
+			}>;
+			pageInfo: {
+				hasNextPage: boolean;
+				endCursor: string;
+				hasPreviousPage: boolean;
+				startCursor: string;
+			};
+	  }
+	| EmptyPage;

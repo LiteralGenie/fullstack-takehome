@@ -1,4 +1,5 @@
 import type { UserType, Page } from 'lib/types';
+import { isEmptyArray } from 'lib/utils';
 
 type ForwardArguments = {
 	first: number;
@@ -14,8 +15,7 @@ type SearchOptions = Partial<ForwardArguments> & Partial<BackwardArguments>;
 
 /**
  * Return a subset of users
- * User id is used as cursor (not the index!)
- * The user list should be append-only and not allow deletions, otherwise old cursors become invalid
+ * User id is used as cursor, ids should be sequential (1,2,3,...)
  * This is an implementation of https://relay.dev/graphql/connections.htm#sec-Pagination-algorithm
  * @param users users sorted by id in ascending order
  * @param opts.after the first user returned is *after* this cursor
@@ -31,16 +31,18 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	let indexAfter = -1;
 	if (forwardArgs) {
 		const id = decodeCursor(forwardArgs.after);
-		if (!isNaN(id)) {
-			indexAfter = users.findIndex((user) => user.id === id) ?? indexAfter;
+		const index = id - 1;
+		if (index >= 0 && index < users.length) {
+			indexAfter = index;
 		}
 	}
 
 	let indexBefore = users.length;
 	if (backwardArgs) {
 		const id = decodeCursor(backwardArgs.before);
-		if (!isNaN(id)) {
-			indexBefore = users.findIndex((user) => user.id === id) ?? indexBefore;
+		const index = id - 1;
+		if (index >= 0 && index < users.length) {
+			indexAfter = index;
 		}
 	}
 
@@ -62,24 +64,38 @@ export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserTy
 	});
 
 	// Create pageInfo
-	const pageInfo: Page['pageInfo'] = {
-		hasNextPage: idxEnd < users.length,
-		endCursor: edges[edges.length - 1]?.cursor || null,
-		hasPreviousPage: idxStart > 0,
-		startCursor: edges[0]?.cursor || null
-	};
-
-	const result = { edges, pageInfo };
-	return result;
+	const hasNextPage = idxEnd < users.length;
+	const hasPreviousPage = idxStart > 0;
+	if (isEmptyArray(edges)) {
+		const pageInfo = {
+			hasNextPage: hasNextPage,
+			endCursor: null,
+			hasPreviousPage: hasPreviousPage,
+			startCursor: null
+		};
+		return { edges: edges as [], pageInfo };
+	} else {
+		const pageInfo = {
+			hasNextPage: hasNextPage,
+			endCursor: edges[edges.length - 1].cursor,
+			hasPreviousPage: hasPreviousPage,
+			startCursor: edges[0].cursor
+		};
+		return { edges, pageInfo };
+	}
 }
 
+/**
+ * Extract id from base64 string
+ * @param cursor
+ * @returns NaN if invalid, otherwise an integer
+ */
 function decodeCursor(cursor: string): number {
 	const text = Buffer.from(cursor, 'base64').toString('ascii');
 
 	// Extract and validate id
 	const idStr = text.match(/^user_(\d+)/)?.at(1);
 	if (!idStr) {
-		console.warn('Invalid cursor', text);
 		return NaN;
 	}
 
@@ -87,6 +103,10 @@ function decodeCursor(cursor: string): number {
 	return id;
 }
 
+/**
+ * Convert id to base64
+ * @param id
+ */
 function encodeCursor(id: number): string {
 	const text = `user_${id}`;
 	const cursor = Buffer.from(text).toString('base64');
