@@ -84,17 +84,17 @@ describe('pagination', () => {
 		}
 
 		const cases: SearchOptions[] = [
-			// 1 valid pair
+			// 1 invalid pair
 			withKeys(['first']),
 			withKeys(['after']),
 			withKeys(['last']),
 			withKeys(['before']),
-			// 2 valid pairs
+			// 2 invalid pairs
 			withKeys(['first', 'last']),
 			withKeys(['first', 'before']),
 			withKeys(['after', 'last']),
 			withKeys(['after', 'before']),
-			// 1 valid pair, 1 valid pair
+			// 1 invalid pair, 1 valid pair
 			withKeys(['first', 'last', 'before']),
 			withKeys(['after', 'last', 'before']),
 			withKeys(['last', 'first', 'after']),

@@ -24,7 +24,7 @@ export type SearchOptions = Partial<ForwardArguments> & Partial<BackwardArgument
  * @param opts.last number of users to return that precede opts.after
  */
 export function searchUsers(users: UserType[], opts: SearchOptions): Page<UserType> {
-	// Assert that {first, after} and / or {last, before exist}
+	// Assert that {first, after} and / or {last, before} exist
 	const [forwardArgs, backwardArgs] = validateSearchOptions(opts);
 
 	// Convert cursors to indices
